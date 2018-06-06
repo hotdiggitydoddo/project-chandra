@@ -11,10 +11,19 @@
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)ProjectChandraGame.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Scenes\TestScene.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MapGen\Generators\MessyBSPTree\MessyBSPTreeMapGenerator.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MapGen\Generators\MessyBSPTree\Leaf.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MapGen\Generators\MessyBSPTree\MessyBSPTreeMap.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MapGen\Map.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MapGen\TileType.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MapGen\TileInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)Content\" />
     <Folder Include="$(MSBuildThisFileDirectory)Scenes\" />
+    <Folder Include="$(MSBuildThisFileDirectory)MapGen\" />
+    <Folder Include="$(MSBuildThisFileDirectory)MapGen\Generators\" />
+    <Folder Include="$(MSBuildThisFileDirectory)MapGen\Generators\MessyBSPTree\" />
   </ItemGroup>
   <ItemGroup>
     <MonoGameContentReference Include="$(MSBuildThisFileDirectory)Content\Content.mgcb" />

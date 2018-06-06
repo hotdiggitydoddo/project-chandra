@@ -2,6 +2,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Nez;
+using ProjectChandra.Shared.MapGen.Generators;
 
 namespace ProjectChandra.Shared.Scenes
 {
@@ -22,8 +23,18 @@ namespace ProjectChandra.Shared.Scenes
             addRenderer(new DefaultRenderer());
 
             CreateTexture();
+            SetupMap();
 
+        }
 
+        private void SetupMap()
+        {
+            var w = 70;
+            var h = 70;
+
+            var gen = new MessyBSPTreeMapGenerator(w, h);
+            var map = gen.CreateMap();
+            Debug.log(map.ToString());
         }
 
         private void CreateTexture()
