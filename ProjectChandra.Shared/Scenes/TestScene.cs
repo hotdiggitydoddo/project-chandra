@@ -2,6 +2,8 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Nez;
+using Nez.Tiled;
+using ProjectChandra.Shared.Components;
 using ProjectChandra.Shared.MapGen.Generators;
 
 namespace ProjectChandra.Shared.Scenes
@@ -25,16 +27,27 @@ namespace ProjectChandra.Shared.Scenes
             CreateTexture();
             SetupMap();
 
+            camera.zoom = -1f;
+            camera.position = new Vector2(640, 1100);
         }
 
         private void SetupMap()
         {
             var w = 70;
             var h = 70;
+            var ts = 32;
 
             var gen = new MessyBSPTreeMapGenerator(w, h);
             var map = gen.CreateMap();
             Debug.log(map.ToString());
+
+            var custMap = new CustomTiledMap(0, map.Width, map.Height, ts, ts);
+            var tileset = new TiledTileset(_texture, 0, ts, ts, 0, 0, 4, 4);
+            custMap.loadFromArray("basic", map.GetMap(), map.Width, map.Height, tileset, ts, ts);
+
+            var mapEntity = createEntity("tiled-map");
+            mapEntity.addComponent(new TiledMapComponent(custMap, shouldCreateColliders: false));
+
         }
 
         private void CreateTexture()

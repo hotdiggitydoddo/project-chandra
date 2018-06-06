@@ -17,6 +17,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)MapGen\Map.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)MapGen\TileType.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)MapGen\TileInfo.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Components\CustomTiledMap.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)Content\" />
@@ -24,6 +25,7 @@
     <Folder Include="$(MSBuildThisFileDirectory)MapGen\" />
     <Folder Include="$(MSBuildThisFileDirectory)MapGen\Generators\" />
     <Folder Include="$(MSBuildThisFileDirectory)MapGen\Generators\MessyBSPTree\" />
+    <Folder Include="$(MSBuildThisFileDirectory)Components\" />
   </ItemGroup>
   <ItemGroup>
     <MonoGameContentReference Include="$(MSBuildThisFileDirectory)Content\Content.mgcb" />

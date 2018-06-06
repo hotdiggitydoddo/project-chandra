@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Xna.Framework;
 using Nez;
 
@@ -20,12 +21,17 @@ namespace ProjectChandra.Shared.MapGen
 
         public TileType GetTile(int x, int y)
         {
-            return _cells[y * Width + x];
+            return _cells[x + y * Width];
         }
 
         public void SetTile(int x, int y, TileType type)
         {
-            _cells[y * Width + x] = type;
+            _cells[x + y * Width] = type;
+        }
+
+        public int[] GetMap()
+        {
+            return _cells.Select(x => (int)x).ToArray();
         }
 
         public List<TileInfo> GetAdjacentTilesSimple(int x, int y)

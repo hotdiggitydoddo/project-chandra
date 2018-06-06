@@ -52,9 +52,9 @@ namespace ProjectChandra.Shared.MapGen.Generators
 
         private void Clear()
         {
-            for (int x = 0; x < Width; x++)
+            for (int y = 0; y < Height; y++)
             {
-                for (int y = 0; y < Height; y++)
+                for (int x = 0; x < Width; x++)
                 {
                     _map.SetTile(x, y, TileType.Wall);
                 }
@@ -97,9 +97,9 @@ namespace ProjectChandra.Shared.MapGen.Generators
             for (var i = 0; i < 3; i++)
             {
                 // Look at each cell individually and check for smoothness
-                for (var x = 1; x < Height - 1; x++)
+                for (var y = 1; y < Width - 1; y++)
                 {
-                    for (var y = 1; y < Width - 1; y++)
+                    for (var x = 1; x < Height - 1; x++)
                     {
                         var tile = _map.GetTile(x, y);
 

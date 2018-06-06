@@ -14,8 +14,8 @@ namespace ProjectChandra.Shared.MapGen.Generators
         public void CreateRoom(Rectangle room)
         {
             // Set all tiles within a rectangle to 0
-            for (var x = room.Left + 1; x < room.Right; x++)
-                for (var y = room.Top + 1; y < room.Bottom; y++)
+            for (var y = room.Top + 1; y < room.Bottom; y++)
+                for (var x = room.Left + 1; x < room.Right; x++)
                     SetTile(x, y, TileType.Empty);
         }
 
@@ -100,9 +100,9 @@ namespace ProjectChandra.Shared.MapGen.Generators
         {
             var sb = new StringBuilder();
 
-            for (var x = 0; x < Width; x++)
+            for (var y = 0; y < Height; y++)
             {
-                for (var y = 0; y < Height; y++)
+                for (var x = 0; x < Width; x++)
                 {
                     var tile = GetTile(x, y);
                     sb.Append(tile == TileType.Empty ? "." : "#");
