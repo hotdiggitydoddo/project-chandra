@@ -1,5 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
-using Nez;
+using ProjectChandra.Shared.Helpers;
 
 namespace ProjectChandra.Shared.MapGen
 {
@@ -8,5 +8,6 @@ namespace ProjectChandra.Shared.MapGen
         public Point Location { get; set; }
         public Direction RelativeDirection { get; set; }
         public TileType Tile { get; set; }
+
     }
 }
