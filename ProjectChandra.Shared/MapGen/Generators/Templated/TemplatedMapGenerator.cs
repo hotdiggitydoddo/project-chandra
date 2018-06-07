@@ -96,7 +96,7 @@ namespace ProjectChandra.Shared.MapGen.Generators
 
                 if (cardinalTiles.Count(x => x.Tile == TileType.Wall) != 3)
                     continue;
-                
+
                 if (cardinalTiles.Any(x => x.Tile == TileType.Door))
                 {
                     foreach (var doorTile in cardinalTiles.Where(x => x.Tile == TileType.Door))
@@ -161,11 +161,7 @@ namespace ProjectChandra.Shared.MapGen.Generators
                         continue;
                     }
                 }
-
-
-                
             }
-
         }
 
         private void TryMakeRoom(KeyValuePair<Point, TileInfo> candidate)
@@ -244,109 +240,6 @@ namespace ProjectChandra.Shared.MapGen.Generators
                 }
             }
 
-
-            // Now make sure that the door we created earlier doesn't open up to a wall.  
-            // If it does, shift the templated room one unit and re-check.
-            //var tileInFrontOfDoor = template.GetCell(candidate.Value.Location.X - templateArea.X,
-            //                                         candidate.Value.Location.Y - templateArea.Y);
-
-            //if (tileInFrontOfDoor == TileType.Wall)
-            //{
-            //    var ready = false;
-            //    var rand = Nez.Random.chance(.5f);
-
-            //    if (buildDirection == Direction.Up || buildDirection == Direction.Down)
-            //    {
-            //        if (rand)
-            //        {
-            //            //check the tile to the left
-            //            if (template.GetCell((candidate.Value.Location.X - 1) - templateArea.X,
-            //                                 candidate.Value.Location.Y - templateArea.Y) == TileType.Empty)
-            //            {
-            //                templateArea.Offset(-1, 0);
-            //                ready = true;
-            //            }
-            //            else //check to the right
-            //            {
-            //                if (template.GetCell((candidate.Value.Location.X + 1) - templateArea.X,
-            //                                candidate.Value.Location.Y - templateArea.Y) == TileType.Empty)
-            //                {
-            //                    templateArea.Offset(1, 0);
-            //                    ready = true;
-            //                }
-            //            }
-            //        }
-            //        else
-            //        {
-            //            //check to the right
-            //            if (template.GetCell((candidate.Value.Location.X + 1) - templateArea.X,
-            //                        candidate.Value.Location.Y - templateArea.Y) == TileType.Empty)
-            //            {
-            //                templateArea.Offset(1, 0);
-            //                ready = true;
-            //            }
-            //            else // check the tile to the left
-            //            {
-            //                if (template.GetCell((candidate.Value.Location.X - 1) - templateArea.X,
-            //                                 candidate.Value.Location.Y - templateArea.Y) == TileType.Empty)
-            //                {
-            //                    templateArea.Offset(-1, 0);
-            //                    ready = true;
-            //                }
-            //            }
-            //        }
-            //    }
-            //    else //build dir == left or right
-            //    {
-            //        if (rand)
-            //        {
-            //            //check the tile above
-            //            if (template.GetCell(candidate.Value.Location.X - templateArea.X,
-            //                                 (candidate.Value.Location.Y - 1) - templateArea.Y) == TileType.Empty)
-            //            {
-            //                templateArea.Offset(0, -1);
-            //                ready = true;
-            //            }
-            //            else //check below
-            //            {
-            //                if (template.GetCell(candidate.Value.Location.X - templateArea.X,
-            //                                (candidate.Value.Location.Y + 1) - templateArea.Y) == TileType.Empty)
-            //                {
-            //                    templateArea.Offset(0, 1);
-            //                    ready = true;
-            //                }
-            //            }
-            //        }
-            //        else
-            //        { 
-            //            // check below
-            //            if (template.GetCell(candidate.Value.Location.X - templateArea.X,
-            //                                (candidate.Value.Location.Y + 1) - templateArea.Y) == TileType.Empty)
-            //            {
-            //                templateArea.Offset(0, 1);
-            //                ready = true;
-            //            }
-            //            else
-            //            {
-            //                //check the tile above
-            //                if (template.GetCell(candidate.Value.Location.X - templateArea.X,
-            //                                     (candidate.Value.Location.Y - 1) - templateArea.Y) == TileType.Empty)
-            //                {
-            //                    templateArea.Offset(0, -1);
-            //                    ready = true;
-            //                }
-            //            }
-            //        }
-            //    }
-
-            //    if (!ready)
-            //    {
-            //        // Put the wall back and bail out.
-            //        _map.SetTile(candidate.Key.X, candidate.Key.Y, TileType.Wall);
-            //        return;
-            //    }
-            //}
-
             // Project the template onto the map and bail out if there are any intersections
             var intersects = false;
 
@@ -386,21 +279,8 @@ namespace ProjectChandra.Shared.MapGen.Generators
                     var tCell = template.GetCell(x - templateArea.X, y - templateArea.Y);
                     if (tCell == TileType.Unused)
                         continue;
-                    //var adjacents = _map.GetAdjacentTilesSimple(x, y);
-                    //var theDoor = adjacents.SingleOrDefault(a => a.Tile == TileType.Door);
-
-
-                    //if (theDoor.Location == new Point(candidate.Key.X, candidate.Key.Y) 
-                    //    && tCell == TileType.Wall)
-                    //{
-                    //    _map.SetTile(x, y, TileType.Empty);
-                    //}
-                    //else
-                    {
-                        _map.SetTile(x, y, template.GetCell(x - templateArea.X, y - templateArea.Y));
-                    }
-
-
+                    
+                    _map.SetTile(x, y, template.GetCell(x - templateArea.X, y - templateArea.Y));
                 }
             }
 
