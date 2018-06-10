@@ -34,7 +34,7 @@ namespace ProjectChandra.Shared.MapGen
 
         public TileType[] GetMap()
         {
-            return _cells.ToArray();
+            return _cells;
         }
 
         public Point GetTileLocation(int i)

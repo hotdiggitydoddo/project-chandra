@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Xna.Framework;
+using Nez.AI.GOAP;
+using Nez.AI.Pathfinding;
 using ProjectChandra.Shared.Helpers;
 
 namespace ProjectChandra.Shared.MapGen.Generators
@@ -11,7 +13,9 @@ namespace ProjectChandra.Shared.MapGen.Generators
         private TemplatedMap _map;
         private List<RoomTemplate> _templates;
         private List<Rectangle> _rooms;
+        private List<KeyValuePair<Point, Direction>> _doors;
 
+        private Dictionary<Rectangle, List<Rectangle>> _roomList;
         public int MinRoomSize { get; set; }
         public int MaxRoomSize { get; set; }
         public int MaxTries { get; set; }
@@ -30,10 +34,15 @@ namespace ProjectChandra.Shared.MapGen.Generators
         {
             var mapCreated = false;
 
+            var hallwayChance = .50f;
+            var templatedChance = .33f;
+
             while (!mapCreated)
             {
                 _map = new TemplatedMap(w, h);
                 _rooms = new List<Rectangle>();
+                _doors = new List<KeyValuePair<Point, Direction>>();
+                _roomList = new Dictionary<Rectangle, List<Rectangle>>();
 
                 Clear();
 
@@ -42,6 +51,8 @@ namespace ProjectChandra.Shared.MapGen.Generators
                 {
                     startingRoomPlaced = TryPlaceStartingRoom(startingRoomPlaced);
                 }
+                
+                _roomList.Add(_rooms[0], new List<Rectangle>());
 
                 var numTries = 0;
 
@@ -52,17 +63,55 @@ namespace ProjectChandra.Shared.MapGen.Generators
 
                     try
                     {
-                        var candidateWallTiles = GetCandidateWallTiles();
-                        var randomCandidateIndex = Nez.Random.range(0, candidateWallTiles.Count);
 
-                        // Choose a candidate at random
-                        candidate = candidateWallTiles.ElementAt(randomCandidateIndex);
+                        // First, check if we created a hallway last iteration.  If so, we must try to connect it
+                        //if (lastHallwayEndpoint.HasValue)
+                        //{
+                        //    // choose a direction, step in that direction (intersecting the wall now,) 
+                        //    // and create a door in the wall.  if the door connects to something, great,
+                        //    // otherwise, we need to build something from this door point.
+                        //    var graph = new AStarPath(_map);
+                        //    var otherRoom = _rooms[Nez.Random.nextInt(_rooms.Count - 1)];
 
-                        // Create a door at the candidate location
-                        _map.SetTile(candidate.Key.X, candidate.Key.Y, TileType.Door);
+                        //    var path = graph.search(lastHallwayEndpoint.Value, otherRoom.Center);
+                        //    foreach(var p in path)
+                        //    {
+                        //        _map.SetTile(p.X, p.Y, TileType.Empty);
+                        //    }
+                        //}
+                        //else
+                        {
+                            // get a candidate and choose whether or not to insert something procedural 
+                            // (room or hallway) or a templated unit
 
-                        //TODO: choose to make hallway or room?  Right now, just make rooms.
-                        TryMakeRoom(candidate);
+                            //var candidateWallTiles = Nez.Random.choose(true, false) 
+                            //? GetCandidateWallTiles( _rooms.Last())
+                            //: GetCandidateWallTiles();
+
+                            var candidateWallTiles = GetCandidateWallTiles();
+
+                            var randomCandidateIndex = Nez.Random.range(0, candidateWallTiles.Count);
+
+                            // Choose a candidate at random
+                            candidate = candidateWallTiles.ElementAt(randomCandidateIndex);
+
+                           
+
+                            //if (Nez.Random.chance(templatedChance))
+
+                            //if (Nez.Random.chance(hallwayChance))
+                            //    TryMakeHallway(candidate);
+                            //else
+
+                            // Create a door at the candidate location
+                            _map.SetTile(candidate.Key.X, candidate.Key.Y, TileType.Door);
+
+                            if (!TryMakeRoom(candidate))
+                                _map.SetTile(candidate.Key.X, candidate.Key.Y, TileType.Wall);
+
+
+                        }
+
                     }
                     catch
                     {
@@ -70,14 +119,11 @@ namespace ProjectChandra.Shared.MapGen.Generators
                         continue;
                     }
                 }
-
-                //Ensure no doors open up to walls.
-                if (!CheckAndMoveDoors())
+                if (!AreDoorsOk())
                     continue;
-
                 mapCreated = true;
             }
-           
+
             return _map;
         }
 
@@ -88,179 +134,13 @@ namespace ProjectChandra.Shared.MapGen.Generators
             _templates.AddRange(templates);
         }
 
-        private bool CheckAndMoveDoors()
+        private void TryMakeHallway(KeyValuePair<Point, TileInfo> candidate)
         {
-            var wholeMap = _map.GetMap();
-
-            for (int i = 0; i < wholeMap.Length; i++)
-            {
-                if (wholeMap[i] != TileType.Door)
-                    continue;
-                var doorLoc = _map.GetTileLocation(i);
-                var adjacents = _map.GetAdjacentTiles8Ways(doorLoc.X, doorLoc.Y);
-
-                var cardinalDirs = new[] { Direction.Up, Direction.Right, Direction.Down, Direction.Left };
-                var cardinalTiles = adjacents.Where(x => cardinalDirs.Contains(x.RelativeDirection)).ToList();
-
-                if (cardinalTiles.Count(x => x.Tile == TileType.Wall) != 3)
-                    continue;
-                //return false;
-                if (cardinalTiles.Any(x => x.Tile == TileType.Door))
-                    return false;
-
-                var floorTile = cardinalTiles.Single(x => x.Tile == TileType.Empty);
-
-                // Figure out what axis on which this door is supposed to swing open
-                var isXAxis = floorTile.RelativeDirection == Direction.Left || floorTile.RelativeDirection == Direction.Right;
-
-                if (isXAxis)
-                {
-                    // Can we move the door up?
-                    var upperLeft = adjacents.Single(x => x.RelativeDirection == Direction.UpperLeft);
-                    var upperRight = adjacents.Single(x => x.RelativeDirection == Direction.UpperRight);
-                    if (upperLeft.Tile == TileType.Empty && upperRight.Tile == TileType.Empty)
-                    {
-                        // We can move the door up
-                        var up = cardinalTiles.Single(x => x.RelativeDirection == Direction.Up);
-                        _map.SetTile(up.Location.X, up.Location.Y, TileType.Door);
-                        _map.SetTile(doorLoc.X, doorLoc.Y, TileType.Wall);
-                        continue;
-                    }
-
-                    // Can we move the door down?
-                    var lowerLeft = adjacents.Single(x => x.RelativeDirection == Direction.LowerLeft);
-                    var lowerRight = adjacents.Single(x => x.RelativeDirection == Direction.LowerRight);
-                    if (lowerLeft.Tile == TileType.Empty && lowerRight.Tile == TileType.Empty)
-                    {
-                        // We can move the door down
-                        var down = cardinalTiles.Single(x => x.RelativeDirection == Direction.Down);
-                        _map.SetTile(down.Location.X, down.Location.Y, TileType.Door);
-                        _map.SetTile(doorLoc.X, doorLoc.Y, TileType.Wall);
-                        continue;
-                    }
-
-                    // We can't move the door immediately up or down.  Find another place along the y axis to place the door
-                    var chance = Nez.Random.chance(.5f);
-                    var movedDoor = false;
-
-                    if (chance)
-                        movedDoor = TryMoveDoorAlongAxis(doorLoc, Direction.Up);
-                    else
-                        movedDoor = TryMoveDoorAlongAxis(doorLoc, Direction.Down);
-
-                    if (!movedDoor)
-                        return false;
-
-                }
-                else // y axis
-                {
-                    // Can we move the door left?
-                    var upperLeft = adjacents.Single(x => x.RelativeDirection == Direction.UpperLeft);
-                    var lowerLeft = adjacents.Single(x => x.RelativeDirection == Direction.LowerLeft);
-
-                    if (upperLeft.Tile == TileType.Empty && lowerLeft.Tile == TileType.Empty)
-                    {
-                        // We can move the door left
-                        var left = cardinalTiles.Single(x => x.RelativeDirection == Direction.Left);
-                        _map.SetTile(left.Location.X, left.Location.Y, TileType.Door);
-                        _map.SetTile(doorLoc.X, doorLoc.Y, TileType.Wall);
-                        continue;
-                    }
-
-                    // Can we move the door right?
-                    var upperRight = adjacents.Single(x => x.RelativeDirection == Direction.UpperRight);
-                    var lowerRight = adjacents.Single(x => x.RelativeDirection == Direction.LowerRight);
-                    if (upperRight.Tile == TileType.Empty && lowerRight.Tile == TileType.Empty)
-                    {
-                        // We can move the door right
-                        var right = cardinalTiles.Single(x => x.RelativeDirection == Direction.Right);
-                        _map.SetTile(right.Location.X, right.Location.Y, TileType.Door);
-                        _map.SetTile(doorLoc.X, doorLoc.Y, TileType.Wall);
-                        continue;
-                    }
-
-                    // We can't move the door immediately left or right.  Find another place along the x axis to place the door
-                    var chance = Nez.Random.chance(.5f);
-                    var movedDoor = false;
-
-                    if (chance)
-                        movedDoor = TryMoveDoorAlongAxis(doorLoc, Direction.Left);
-                    else
-                        movedDoor = TryMoveDoorAlongAxis(doorLoc, Direction.Right);
-
-                    if (!movedDoor)
-                        return false;
-                }
-            }
-            return true;
+            var buildDirection = candidate.Value.RelativeDirection;
+            int tx, ty;
         }
 
-        private bool TryMoveDoorAlongAxis(Point doorLoc, Direction directionToMove)
-        {
-            var movedDoor = false;
-            var hitUnusedSpace = false;
-            var newDoorPos = new Point(doorLoc.X, doorLoc.Y);
-
-            while (!movedDoor || hitUnusedSpace)
-            {
-                if (directionToMove == Direction.Up)
-                    newDoorPos.Y -= 1;
-                else if (directionToMove == Direction.Down)
-                    newDoorPos.Y += 1;
-                else if (directionToMove == Direction.Left)
-                    newDoorPos.X -= 1;
-                else if (directionToMove == Direction.Right)
-                    newDoorPos.X += 1;
-                try
-                {
-                    var nextCellUp = _map.GetTile(newDoorPos.X, newDoorPos.Y);
-                    if (nextCellUp == TileType.Unused)
-                    {
-                        hitUnusedSpace = true;
-                        break;
-                    }
-                    var adjacents = _map.GetAdjacentTilesSimple(newDoorPos.X, newDoorPos.Y);
-
-                    if (adjacents.Count(x => x.Tile == TileType.Empty) >= 3)
-                    {
-                        hitUnusedSpace = true;
-                        break;
-                    }
-
-                    if (directionToMove == Direction.Right || directionToMove == Direction.Left)
-                    {
-                        //if (adjacents.Where(x => x.RelativeDirection == Direction.Right || x.RelativeDirection == Direction.Left)
-                        //    .All(x => x.Tile == TileType.Empty))
-                        {
-                            _map.SetTile(newDoorPos.X, newDoorPos.Y, TileType.Door);
-                            _map.SetTile(doorLoc.X, doorLoc.Y, TileType.Empty);
-
-                            movedDoor = true;
-                        }
-                    }
-                    else 
-                    {
-                        //if (adjacents.Where(x => x.RelativeDirection == Direction.Up || x.RelativeDirection == Direction.Down)
-                        //    .All(x => x.Tile == TileType.Empty))
-                        {
-                            _map.SetTile(newDoorPos.X, newDoorPos.Y, TileType.Door);
-                            _map.SetTile(doorLoc.X, doorLoc.Y, TileType.Empty);
-
-                            movedDoor = true;
-                        }
-                    }
-                   
-                }
-                catch 
-                {
-                    return false;
-                }
-
-            }
-            return movedDoor;
-        }
-
-        private void TryMakeRoom(KeyValuePair<Point, TileInfo> candidate)
+        private bool TryMakeRoom(KeyValuePair<Point, TileInfo> candidate)
         {
             var buildDirection = candidate.Value.RelativeDirection;
             var template = _templates[Nez.Random.range(0, _templates.Count)];
@@ -271,18 +151,18 @@ namespace ProjectChandra.Shared.MapGen.Generators
             {
                 case Direction.Left:
                     tx = (candidate.Key.X) - template.Bounds.Width;
-                    ty = candidate.Key.Y - template.Bounds.Center.Y;
+                    ty = candidate.Key.Y - Nez.Random.range(template.Bounds.Top, template.Bounds.Bottom);
                     break;
                 case Direction.Right:
                     tx = candidate.Key.X + 1;
-                    ty = candidate.Key.Y - template.Bounds.Center.Y;
+                    ty = candidate.Key.Y - Nez.Random.range(template.Bounds.Top, template.Bounds.Bottom);
                     break;
                 case Direction.Up:
-                    tx = candidate.Key.X - template.Bounds.Center.X;
+                    tx = candidate.Key.X - Nez.Random.range(template.Bounds.Left, template.Bounds.Right);
                     ty = (candidate.Key.Y) - template.Bounds.Height;
                     break;
                 default:
-                    tx = candidate.Key.X - template.Bounds.Center.X;
+                    tx = candidate.Key.X - Nez.Random.range(template.Bounds.Left, template.Bounds.Right);
                     ty = candidate.Key.Y + 1;
                     break;
             }
@@ -346,26 +226,19 @@ namespace ProjectChandra.Shared.MapGen.Generators
                     var templateCell = template.GetCell(x - templateArea.X, y - templateArea.Y);
                     var mapCell = _map.GetTile(x, y);
 
+                    var adj = _map.GetAdjacentTilesSimple(x, y).Select(p=>p.Location);
+                    if (adj.Contains(candidate.Key) && templateCell == TileType.Wall)
+                        return false;
+
                     if (mapCell == TileType.Unused)
                         continue;
                     if (templateCell == TileType.Unused)
                         continue;
-                    if (mapCell == TileType.Wall && templateCell == TileType.Wall)
-                        continue;
-
-                    intersects = true;
-                    break;
-                }
-                if (intersects)
-                {
-                    // Put the wall back
-                    _map.SetTile(candidate.Key.X, candidate.Key.Y, TileType.Wall);
-                    break;
+                  
+                    return false;
                 }
             }
 
-            if (intersects)
-                return;
 
             // Set the new template in place on the actual map
             for (var y = templateArea.Top; y < templateArea.Bottom; y++)
@@ -375,14 +248,14 @@ namespace ProjectChandra.Shared.MapGen.Generators
                     var tCell = template.GetCell(x - templateArea.X, y - templateArea.Y);
                     if (tCell == TileType.Unused)
                         continue;
-                    
-                    _map.SetTile(x, y, template.GetCell(x - templateArea.X, y - templateArea.Y));
+
+                    _map.SetTile(x, y, tCell);
                 }
             }
 
-            for (var y = 1; y < _map.Height - 1; y++)
+            for (var y = templateArea.Top; y < templateArea.Bottom; y++)
             {
-                for (var x = 1; x < _map.Width - 1; x++)
+                for (var x = templateArea.Left; x < templateArea.Right; x++)
                 {
                     var tile = _map.GetTile(x, y);
                     if (tile != TileType.Empty)
@@ -395,10 +268,20 @@ namespace ProjectChandra.Shared.MapGen.Generators
                 }
             }
 
+
+            _doors.Add(new KeyValuePair<Point, Direction>(candidate.Key, candidate.Value.RelativeDirection));
+
             _rooms.Add(templateArea);
+
+            return true;
+        }
+        
+        private bool AreDoorsOk()
+        {
+            return !_doors.Any(x => _map.GetAdjacentTilesSimple(x.Key.X, x.Key.Y).Count(o => o.Tile == TileType.Wall) == 3);
         }
 
-        private Dictionary<Point, TileInfo> GetCandidateWallTiles()
+        private Dictionary<Point, TileInfo> GetCandidateWallTiles(Rectangle? room = null)
         {
             var retVal = new Dictionary<Point, TileInfo>();
             var allWalls = new Dictionary<int, int>();
@@ -434,18 +317,21 @@ namespace ProjectChandra.Shared.MapGen.Generators
                 // Is the candidate exposed to unused space?
                 TileInfo? unusedTile = null;
 
+                if (neighbors.Any(x => x.Tile == TileType.Door))
+                    continue;
+
                 if (neighborsAlongX)
                 {
-                    if (uNeighbor.Tile == TileType.Unused)
+                    if (uNeighbor.Tile == TileType.Unused && dNeighbor.Tile != TileType.Wall)
                         unusedTile = uNeighbor;
-                    else if (dNeighbor.Tile == TileType.Unused)
+                    else if (dNeighbor.Tile == TileType.Unused && uNeighbor.Tile != TileType.Wall)
                         unusedTile = dNeighbor;
                 }
                 else if (neighborsAlongY)
                 {
-                    if (rNeighbor.Tile == TileType.Unused)
+                    if (rNeighbor.Tile == TileType.Unused && lNeighbor.Tile != TileType.Wall)
                         unusedTile = rNeighbor;
-                    else if (lNeighbor.Tile == TileType.Unused)
+                    else if (lNeighbor.Tile == TileType.Unused && rNeighbor.Tile != TileType.Wall)
                         unusedTile = lNeighbor;
                 }
 
@@ -453,7 +339,17 @@ namespace ProjectChandra.Shared.MapGen.Generators
                     continue;
 
                 // Winner winner, chicken dinner!
-                retVal.Add(cellLocation, unusedTile.Value);
+                if (room.HasValue)
+                {
+                    var roomRect = new Rectangle(room.Value.X, room.Value.Y, room.Value.Width, room.Value.Height);
+                    roomRect.Inflate(1, 1);
+
+                    if (roomRect.Contains(cellLocation))
+                        retVal.Add(cellLocation, unusedTile.Value);
+                }
+                else
+                    retVal.Add(cellLocation, unusedTile.Value);
+
             }
             return retVal;
         }
@@ -485,6 +381,8 @@ namespace ProjectChandra.Shared.MapGen.Generators
 
         private void Clear()
         {
+            _rooms.Clear();
+            _doors.Clear();
             for (var y = 0; y < _map.Height; y++)
                 for (var x = 0; x < _map.Width; x++)
                     if (x == 0 || x == _map.Width - 1 || y == 0 || y == _map.Height - 1)

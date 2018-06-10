@@ -100,7 +100,6 @@ namespace ProjectChandra.Shared.Scenes
             var w = 70;
             var h = 70;
             var ts = 32;
-
             var templates = LoadRoomTemplatesFromFile(Path.Combine(content.RootDirectory, "Templates.txt"));
 
             //tData = string.Empty;
@@ -112,7 +111,7 @@ namespace ProjectChandra.Shared.Scenes
             //tData += "........xxxxxxxx........";
             //templates.Add(new RoomTemplate(24, 6, tData, "tooth"));
 
-            var gen = new TemplatedMapGenerator() { DesiredRoomCount = 15 };
+            var gen = new TemplatedMapGenerator() { DesiredRoomCount = 40 };
             gen.AddTemplates(templates.ToArray());
 
             var map = gen.CreateMap(w, h);

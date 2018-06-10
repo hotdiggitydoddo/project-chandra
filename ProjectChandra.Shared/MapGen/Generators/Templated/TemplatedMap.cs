@@ -8,13 +8,12 @@ namespace ProjectChandra.Shared.MapGen.Generators
     {
         private List<Rectangle> _rooms;
         private List<Rectangle> _hallways;
+      
 
         public TemplatedMap(int w, int h) : base(w, h)
         {
             _rooms = new List<Rectangle>();
             _hallways = new List<Rectangle>();
-
-
         }
 
 
