@@ -15,44 +15,42 @@ namespace ProjectChandra.Shared.MapGen.Generators
         private List<Rectangle> _rooms;
         private List<KeyValuePair<Point, Direction>> _doors;
 
-        private Dictionary<Rectangle, List<Rectangle>> _roomList;
         public int MinRoomSize { get; set; }
         public int MaxRoomSize { get; set; }
+        public float TemplatedAreaChance { get; set; }
+        public float HallwayChance { get; set; }
         public int MaxTries { get; set; }
         public int DesiredRoomCount { get; set; }
 
-        public TemplatedMapGenerator(int minRoomSize = 6, int maxRoomSize = 20, int maxTries = 1000, int desiredRoomCount = 30)
+        public TemplatedMapGenerator(int minRoomSize = 6, int maxRoomSize = 20, int maxTries = 1000, 
+            int desiredRoomCount = 30, float templatedAreaChance = .5f, float hallwayChance = .25f)
         {
             _templates = new List<RoomTemplate>();
             MinRoomSize = minRoomSize;
             MaxRoomSize = maxRoomSize;
             MaxTries = maxTries;
             DesiredRoomCount = desiredRoomCount;
+            TemplatedAreaChance = templatedAreaChance;
+            HallwayChance = hallwayChance;
         }
 
         public TemplatedMap CreateMap(int w, int h)
         {
             var mapCreated = false;
 
-            var hallwayChance = .50f;
-            var templatedChance = .33f;
-
             while (!mapCreated)
             {
                 _map = new TemplatedMap(w, h);
                 _rooms = new List<Rectangle>();
                 _doors = new List<KeyValuePair<Point, Direction>>();
-                _roomList = new Dictionary<Rectangle, List<Rectangle>>();
 
                 Clear();
 
                 bool startingRoomPlaced = false;
                 while (!startingRoomPlaced)
                 {
-                    startingRoomPlaced = TryPlaceStartingRoom(startingRoomPlaced);
+                    startingRoomPlaced = TryPlaceStartingRoom();
                 }
-                
-                _roomList.Add(_rooms[0], new List<Rectangle>());
 
                 var numTries = 0;
 
@@ -84,11 +82,11 @@ namespace ProjectChandra.Shared.MapGen.Generators
                             // get a candidate and choose whether or not to insert something procedural 
                             // (room or hallway) or a templated unit
 
-                            //var candidateWallTiles = Nez.Random.choose(true, false) 
-                            //? GetCandidateWallTiles( _rooms.Last())
-                            //: GetCandidateWallTiles();
+                            // var candidateWallTiles = Nez.Random.choose(true, false) 
+                            // ? GetCandidateWallTiles( _rooms.Last())
+                            // : GetCandidateWallTiles();
 
-                            var candidateWallTiles = GetCandidateWallTiles();
+                             var candidateWallTiles = GetCandidateWallTiles();
 
                             var randomCandidateIndex = Nez.Random.range(0, candidateWallTiles.Count);
 
@@ -354,8 +352,9 @@ namespace ProjectChandra.Shared.MapGen.Generators
             return retVal;
         }
 
-        private bool TryPlaceStartingRoom(bool startingRoomPlaced)
+        private bool TryPlaceStartingRoom()
         {
+            var startingRoomPlaced = false;
             var startingWidth = Nez.Random.range(MinRoomSize / 2, MaxRoomSize / 2);
             var startingHeight = Nez.Random.range(MinRoomSize / 2, MaxRoomSize / 2);
             var sx = Nez.Random.range(2, _map.Width - 2 - startingWidth);
@@ -389,7 +388,6 @@ namespace ProjectChandra.Shared.MapGen.Generators
                         _map.SetTile(x, y, TileType.Wall);
                     else
                         _map.SetTile(x, y, TileType.Unused);
-
         }
     }
 }
