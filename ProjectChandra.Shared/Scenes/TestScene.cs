@@ -111,7 +111,7 @@ namespace ProjectChandra.Shared.Scenes
             //tData += "........xxxxxxxx........";
             //templates.Add(new RoomTemplate(24, 6, tData, "tooth"));
 
-            var gen = new TemplatedMapGenerator() { DesiredRoomCount = 40 };
+            var gen = new TemplatedMapGenerator() { DesiredRoomCount = 35 };
             gen.AddTemplates(templates.ToArray());
 
             var map = gen.CreateMap(w, h);
@@ -154,8 +154,9 @@ namespace ProjectChandra.Shared.Scenes
             if (Input.isKeyDown(Keys.R))
             {
                 var tiledMapEntity = entities.findEntity("tiled-map");
-                tiledMapEntity.destroy();
+                tiledMapEntity.destroy();   
                 SetupTemplatedMap();
+                //SetupBspMap();
             }
         }
     }

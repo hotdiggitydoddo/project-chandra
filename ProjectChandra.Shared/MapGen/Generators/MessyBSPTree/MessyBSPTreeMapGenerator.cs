@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Xna.Framework;
+using ProjectChandra.Shared.Helpers;
 
 namespace ProjectChandra.Shared.MapGen.Generators
 {
@@ -46,7 +48,7 @@ namespace ProjectChandra.Shared.MapGen.Generators
 
             if (SmoothEdges)
                 CleanUpMap();
-
+            PlaceDoors();
             return _map;
         }
 
@@ -112,6 +114,61 @@ namespace ProjectChandra.Shared.MapGen.Generators
                 }
             }
         }
+
+        private void PlaceDoors()
+        {
+            foreach (var leaf in _leafs)
+            {
+                var room = leaf.GetRoom().Value;
+
+                // The the boundries of the room
+                int xMin = room.Left;
+                int xMax = room.Right;
+                int yMin = room.Top;
+                int yMax = room.Bottom;
+
+                // Put the rooms border cells into a list
+                var borderPoints = _map.GetCellsAlongLine(xMin, yMin, xMax, yMin).ToList();
+                borderPoints.AddRange(_map.GetCellsAlongLine(xMin, yMin, xMin, yMax));
+                borderPoints.AddRange(_map.GetCellsAlongLine(xMin, yMax, xMax, yMax));
+                borderPoints.AddRange(_map.GetCellsAlongLine(xMax, yMin, xMax, yMax));
+
+                foreach (var point in borderPoints)
+                {
+                    if (IsPotentialDoor(point))
+                    {
+                        // A door must block field-of-view when it is closed.
+                        _map.SetTile(point.X, point.Y, TileType.Door);
+                        // _map.Doors.Add(new Door
+                        // {
+                        //     X = cell.X,
+                        //     Y = cell.Y,
+                        //     IsOpen = false
+                        // });
+                    }
+                }
+            }
+        }
+
+        private bool IsPotentialDoor(Point point)
+        {
+            var tile = _map.GetTile(point.X, point.Y);
+
+            if (tile == TileType.Wall)
+                return false;
+
+            var adjacents = _map.GetAdjacentTilesSimple(point.X, point.Y);
+            
+            if (adjacents.Any(x => x.Tile == TileType.Door))
+                return false;
+
+            var xAdjacents = adjacents.Where(x => x.RelativeDirection == Direction.Left || x.RelativeDirection == Direction.Right);
+            var yAdjacents = adjacents.Where(x => x.RelativeDirection == Direction.Up || x.RelativeDirection == Direction.Down);
+
+            return ((xAdjacents.All(x => x.Tile == TileType.Wall) && yAdjacents.All(x => x.Tile == TileType.Empty)) 
+                || (yAdjacents.All(x => x.Tile == TileType.Wall) && xAdjacents.All(x => x.Tile == TileType.Empty)));
+        }
+
         private int GetAdjacentWalls(int x, int y)
         {
             var adjacents = _map.GetAdjacentTilesSimple(x, y);

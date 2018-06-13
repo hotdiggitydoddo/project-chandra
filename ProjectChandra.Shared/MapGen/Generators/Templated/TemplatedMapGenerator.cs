@@ -15,15 +15,19 @@ namespace ProjectChandra.Shared.MapGen.Generators
         private List<Rectangle> _rooms;
         private List<KeyValuePair<Point, Direction>> _doors;
 
+
+        private List<Point> _borderCells;
+
         public int MinRoomSize { get; set; }
         public int MaxRoomSize { get; set; }
         public float TemplatedAreaChance { get; set; }
         public float HallwayChance { get; set; }
         public int MaxTries { get; set; }
         public int DesiredRoomCount { get; set; }
+        public float AdditionalDoorsChance { get; set; }
 
-        public TemplatedMapGenerator(int minRoomSize = 6, int maxRoomSize = 20, int maxTries = 1000, 
-            int desiredRoomCount = 30, float templatedAreaChance = .5f, float hallwayChance = .25f)
+        public TemplatedMapGenerator(int minRoomSize = 6, int maxRoomSize = 20, int maxTries = 1000,
+            int desiredRoomCount = 30, float templatedAreaChance = .5f, float hallwayChance = .25f, float additionalDoorsChance = .33f)
         {
             _templates = new List<RoomTemplate>();
             MinRoomSize = minRoomSize;
@@ -32,6 +36,7 @@ namespace ProjectChandra.Shared.MapGen.Generators
             DesiredRoomCount = desiredRoomCount;
             TemplatedAreaChance = templatedAreaChance;
             HallwayChance = hallwayChance;
+            AdditionalDoorsChance = additionalDoorsChance;
         }
 
         public TemplatedMap CreateMap(int w, int h)
@@ -43,6 +48,7 @@ namespace ProjectChandra.Shared.MapGen.Generators
                 _map = new TemplatedMap(w, h);
                 _rooms = new List<Rectangle>();
                 _doors = new List<KeyValuePair<Point, Direction>>();
+                _borderCells = new List<Point>();
 
                 Clear();
 
@@ -61,7 +67,6 @@ namespace ProjectChandra.Shared.MapGen.Generators
 
                     try
                     {
-
                         // First, check if we created a hallway last iteration.  If so, we must try to connect it
                         //if (lastHallwayEndpoint.HasValue)
                         //{
@@ -86,14 +91,12 @@ namespace ProjectChandra.Shared.MapGen.Generators
                             // ? GetCandidateWallTiles( _rooms.Last())
                             // : GetCandidateWallTiles();
 
-                             var candidateWallTiles = GetCandidateWallTiles();
+                            var candidateWallTiles = GetCandidateWallTiles();
 
                             var randomCandidateIndex = Nez.Random.range(0, candidateWallTiles.Count);
 
                             // Choose a candidate at random
                             candidate = candidateWallTiles.ElementAt(randomCandidateIndex);
-
-                           
 
                             //if (Nez.Random.chance(templatedChance))
 
@@ -101,31 +104,25 @@ namespace ProjectChandra.Shared.MapGen.Generators
                             //    TryMakeHallway(candidate);
                             //else
 
-                            // Create a door at the candidate location
-                            _map.SetTile(candidate.Key.X, candidate.Key.Y, TileType.Door);
-
-                            if (!TryMakeRoom(candidate))
-                                _map.SetTile(candidate.Key.X, candidate.Key.Y, TileType.Wall);
-
-
+                            if (TryMakeRoom(candidate))
+                                // Create a door at the candidate location
+                                _map.SetTile(candidate.Key.X, candidate.Key.Y, TileType.Door);
                         }
-
                     }
                     catch
                     {
-                        _map.SetTile(candidate.Key.X, candidate.Key.Y, TileType.Wall);
                         continue;
                     }
                 }
                 if (!AreDoorsOk())
                     continue;
+
+                CreateAdditionalRoutes();
                 mapCreated = true;
             }
 
             return _map;
         }
-
-
 
         public void AddTemplates(params RoomTemplate[] templates)
         {
@@ -165,7 +162,6 @@ namespace ProjectChandra.Shared.MapGen.Generators
                     break;
             }
 
-
             var templateArea = new Rectangle(tx, ty, template.Bounds.Width, template.Bounds.Height);
 
             // If the template contains unused space, use it to help position it against the candidate
@@ -175,7 +171,7 @@ namespace ProjectChandra.Shared.MapGen.Generators
                 while (!ready)
                 {
                     if (template.GetCell(candidate.Key.X - templateArea.X, (candidate.Key.Y + 1) - templateArea.Y) == TileType.Unused)
-                        templateArea.Offset(0, -1);
+                        templateArea.Offset(0, -2);
                     else
                         ready = true;
                 }
@@ -186,7 +182,7 @@ namespace ProjectChandra.Shared.MapGen.Generators
                 while (!ready)
                 {
                     if (template.GetCell(candidate.Key.X - templateArea.X, (candidate.Key.Y - 1) - templateArea.Y) == TileType.Unused)
-                        templateArea.Offset(0, +1);
+                        templateArea.Offset(0, +2);
                     else
                         ready = true;
                 }
@@ -197,7 +193,7 @@ namespace ProjectChandra.Shared.MapGen.Generators
                 while (!ready)
                 {
                     if (template.GetCell((candidate.Key.X + 1) - templateArea.X, candidate.Key.Y - templateArea.Y) == TileType.Unused)
-                        templateArea.Offset(-1, 0);
+                        templateArea.Offset(-2, 0);
                     else
                         ready = true;
                 }
@@ -208,15 +204,13 @@ namespace ProjectChandra.Shared.MapGen.Generators
                 while (!ready)
                 {
                     if (template.GetCell((candidate.Key.X - 1) - templateArea.X, candidate.Key.Y - templateArea.Y) == TileType.Unused)
-                        templateArea.Offset(+1, 0);
+                        templateArea.Offset(+2, 0);
                     else
                         ready = true;
                 }
             }
 
             // Project the template onto the map and bail out if there are any intersections
-            var intersects = false;
-
             for (var y = templateArea.Top; y < templateArea.Bottom; y++)
             {
                 for (var x = templateArea.Left; x < templateArea.Right; x++)
@@ -224,7 +218,7 @@ namespace ProjectChandra.Shared.MapGen.Generators
                     var templateCell = template.GetCell(x - templateArea.X, y - templateArea.Y);
                     var mapCell = _map.GetTile(x, y);
 
-                    var adj = _map.GetAdjacentTilesSimple(x, y).Select(p=>p.Location);
+                    var adj = _map.GetAdjacentTilesSimple(x, y).Select(p => p.Location);
                     if (adj.Contains(candidate.Key) && templateCell == TileType.Wall)
                         return false;
 
@@ -232,11 +226,13 @@ namespace ProjectChandra.Shared.MapGen.Generators
                         continue;
                     if (templateCell == TileType.Unused)
                         continue;
-                  
+
                     return false;
                 }
             }
 
+            //We have a room!  let's place it on the actual map.
+            var points = new List<Point>();
 
             // Set the new template in place on the actual map
             for (var y = templateArea.Top; y < templateArea.Bottom; y++)
@@ -244,6 +240,9 @@ namespace ProjectChandra.Shared.MapGen.Generators
                 for (var x = templateArea.Left; x < templateArea.Right; x++)
                 {
                     var tCell = template.GetCell(x - templateArea.X, y - templateArea.Y);
+
+                    points.Add(new Point(x, y));
+
                     if (tCell == TileType.Unused)
                         continue;
 
@@ -251,6 +250,7 @@ namespace ProjectChandra.Shared.MapGen.Generators
                 }
             }
 
+            // Fill in any unused space with wall tiles
             for (var y = templateArea.Top; y < templateArea.Bottom; y++)
             {
                 for (var x = templateArea.Left; x < templateArea.Right; x++)
@@ -262,21 +262,64 @@ namespace ProjectChandra.Shared.MapGen.Generators
                     var adjacents = _map.GetAdjacentTiles8Ways(x, y);
                     foreach (var adjacent in adjacents)
                         if (adjacent.Tile == TileType.Unused)
+                        {
                             _map.SetTile(adjacent.Location.X, adjacent.Location.Y, TileType.Wall);
+                            _borderCells.Add(adjacent.Location);
+                        }
                 }
             }
 
-
             _doors.Add(new KeyValuePair<Point, Direction>(candidate.Key, candidate.Value.RelativeDirection));
-
             _rooms.Add(templateArea);
 
             return true;
         }
-        
+
         private bool AreDoorsOk()
         {
             return !_doors.Any(x => _map.GetAdjacentTilesSimple(x.Key.X, x.Key.Y).Count(o => o.Tile == TileType.Wall) == 3);
+        }
+
+        private void CreateAdditionalRoutes()
+        {
+            IEnumerable<Point> cells;
+            var placeDoor = false;
+
+            foreach (var cell in _borderCells)
+            {
+                var neighbors = _map.GetAdjacentTilesSimple(cell.X, cell.Y);
+                var rNeighbor = neighbors.Single(x => x.RelativeDirection == Direction.Right);
+                var lNeighbor = neighbors.Single(x => x.RelativeDirection == Direction.Left);
+                var uNeighbor = neighbors.Single(x => x.RelativeDirection == Direction.Up);
+                var dNeighbor = neighbors.Single(x => x.RelativeDirection == Direction.Down);
+
+                placeDoor = false;
+                
+                // Check along Y-Axis
+                if (uNeighbor.Tile == TileType.Wall
+                    && dNeighbor.Tile == TileType.Wall
+                    && lNeighbor.Tile == TileType.Empty
+                    && rNeighbor.Tile == TileType.Empty)
+                {
+                    cells = _map.GetCellsAlongLine(cell.X, cell.Y - 3, cell.X, cell.Y + 3);
+                    placeDoor = Nez.Random.chance(AdditionalDoorsChance) && !cells.Any(c => _map.GetTile(c.X, c.Y) == TileType.Door);
+                }
+                // Check along X-Axis
+                else if (lNeighbor.Tile == TileType.Wall
+                         && rNeighbor.Tile == TileType.Wall
+                         && uNeighbor.Tile == TileType.Empty
+                         && dNeighbor.Tile == TileType.Empty)
+                {
+                    cells = _map.GetCellsAlongLine(cell.X - 3, cell.Y, cell.X + 3, cell.Y);
+                    placeDoor = Nez.Random.chance(AdditionalDoorsChance) && !cells.Any(c => _map.GetTile(c.X, c.Y) == TileType.Door);
+                }
+
+                if (placeDoor)
+                {
+                    _map.SetTile(cell.X, cell.Y, TileType.Door);
+                    _doors.Add(new KeyValuePair<Point, Direction>(cell, Direction.Down));
+                }
+            }
         }
 
         private Dictionary<Point, TileInfo> GetCandidateWallTiles(Rectangle? room = null)
@@ -347,7 +390,6 @@ namespace ProjectChandra.Shared.MapGen.Generators
                 }
                 else
                     retVal.Add(cellLocation, unusedTile.Value);
-
             }
             return retVal;
         }
@@ -367,14 +409,17 @@ namespace ProjectChandra.Shared.MapGen.Generators
                 for (var y = roomRect.Top; y < roomRect.Bottom; y++)
                     for (var x = roomRect.Left; x < roomRect.Right; x++)
                         if (x == roomRect.Left || x == roomRect.Right - 1 || y == roomRect.Top || y == roomRect.Bottom - 1)
+                        {
                             _map.SetTile(x, y, TileType.Wall);
+                            _borderCells.Add(new Point(x, y));
+                        }
                         else
+                        {
                             _map.SetTile(x, y, TileType.Empty);
-
+                        }
                 _rooms.Add(roomRect);
                 startingRoomPlaced = true;
             }
-
             return startingRoomPlaced;
         }
 
@@ -382,6 +427,8 @@ namespace ProjectChandra.Shared.MapGen.Generators
         {
             _rooms.Clear();
             _doors.Clear();
+            _borderCells.Clear();
+
             for (var y = 0; y < _map.Height; y++)
                 for (var x = 0; x < _map.Width; x++)
                     if (x == 0 || x == _map.Width - 1 || y == 0 || y == _map.Height - 1)

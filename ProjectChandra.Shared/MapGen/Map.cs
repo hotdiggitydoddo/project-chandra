@@ -76,7 +76,7 @@ namespace ProjectChandra.Shared.MapGen
         public List<TileInfo> GetAdjacentTiles8Ways(int x, int y)
         {
             var cardinalDirs = GetAdjacentTilesSimple(x, y);
-            cardinalDirs.AddRange(new []
+            cardinalDirs.AddRange(new[]
             {
                 new TileInfo
                 {
@@ -104,6 +104,51 @@ namespace ProjectChandra.Shared.MapGen
                 }
             });
             return cardinalDirs;
+        }
+
+        private int ClampX(int x)
+        {
+            return (x < 0) ? 0 : (x > Width - 1) ? Width - 1 : x;
+        }
+
+        private int ClampY(int y)
+        {
+            return (y < 0) ? 0 : (y > Height - 1) ? Height - 1 : y;
+        }
+
+        public IEnumerable<Point> GetCellsAlongLine(int xOrigin, int yOrigin, int xDestination, int yDestination)
+        {
+            xOrigin = ClampX(xOrigin);
+            yOrigin = ClampY(yOrigin);
+            xDestination = ClampX(xDestination);
+            yDestination = ClampY(yDestination);
+
+            int dx = Math.Abs(xDestination - xOrigin);
+            int dy = Math.Abs(yDestination - yOrigin);
+
+            int sx = xOrigin < xDestination ? 1 : -1;
+            int sy = yOrigin < yDestination ? 1 : -1;
+            int err = dx - dy;
+
+            while (true)
+            {
+                yield return new Point(xOrigin, yOrigin);
+                if (xOrigin == xDestination && yOrigin == yDestination)
+                {
+                    break;
+                }
+                int e2 = 2 * err;
+                if (e2 > -dy)
+                {
+                    err = err - dy;
+                    xOrigin = xOrigin + sx;
+                }
+                if (e2 < dx)
+                {
+                    err = err + dx;
+                    yOrigin = yOrigin + sy;
+                }
+            }
         }
     }
 }
