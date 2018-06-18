@@ -35,7 +35,7 @@ namespace ProjectChandra.Shared.MapGen
 		/// creates a WeightedGridGraph from a TiledTileLayer. Present tile are walls and empty tiles are passable.
 		/// </summary>
 		/// <param name="tiledLayer">Tiled layer.</param>
-		public AStarPath( Map map )
+		public AStarPath( GameMap map )
 		{
 			_width = map.Width;
 			_height = map.Height;

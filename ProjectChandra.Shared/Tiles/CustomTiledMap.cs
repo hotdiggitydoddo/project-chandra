@@ -1,13 +1,14 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using Nez.Tiled;
+using ProjectChandra.Shared.MapGen;
 
-namespace ProjectChandra.Shared.Components
+namespace ProjectChandra.Shared.Tiles
 {
-    /// <summary>
-    /// A highly simplified tilemap that can be loaded from an array.
-    /// </summary>
     public class CustomTiledMap : TiledMap
     {
+        private GameMap _map;
+
         public CustomTiledMap(
             int firstGid,
             int width,
@@ -25,12 +26,25 @@ namespace ProjectChandra.Shared.Components
 
 
         public CustomTiledMap loadFromArray(string name, int[] tileData, int width, int height, TiledTileset tileset, int tileWidth,
-            int tileHeight)
+            int tileHeight, GameMap map)
         {
+            _map = map;
             var tiles = tileData.Select(x => new TiledTile(x) { tileset = tileset }).ToArray();
             var tileLayer = createTileLayer(name, width, height, tiles);
 
             return this;
+        }
+
+        public new TiledLayer createTileLayer(string name, int width, int height, TiledTile[] tiles)
+        {
+            if (orientation == TiledMapOrientation.Orthogonal)
+            {
+                var layer = new CustomTiledLayer(_map, this, name, width, height, tiles);
+                layers.Add(layer);
+                return layer;
+            }
+
+            throw new NotImplementedException();
         }
     }
 }

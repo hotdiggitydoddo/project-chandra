@@ -5,14 +5,14 @@ namespace ProjectChandra.Shared.MapGen
 {
     public class Room
     {
-        private Map _map;
+        private GameMap _map;
 
         public List<Point> Cells;
         public List<Point> EdgeCells;
         public List<Room> ConnectedRooms;
         public int RoomSize => Cells.Count;
 
-        public Room(List<Point> roomCells, Map map)
+        public Room(List<Point> roomCells, GameMap map)
         {
             Cells = roomCells;
             ConnectedRooms = new List<Room>();

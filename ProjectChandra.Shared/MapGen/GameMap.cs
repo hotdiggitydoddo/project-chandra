@@ -1,40 +1,51 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using Microsoft.Xna.Framework;
-using Nez;
-using Direction = ProjectChandra.Shared.Helpers.Direction;
+﻿using System.Collections.Generic;
+using ProjectChandra.Shared.Helpers;
+using RogueSharp;
 
 namespace ProjectChandra.Shared.MapGen
 {
-    public abstract class Map
+    public abstract class GameMap : Map
     {
-        protected TileType[] _cells;
-        public int Width { get; protected set; }
-        public int Height { get; protected set; }
+        protected TileType[] _tiles;
         public Rectangle Bounds { get; private set; }
 
-        public Map(int w, int h)
+        public GameMap(int w, int h) : base(w, h)
         {
-            Width = w;
-            Height = h;
-            _cells = new TileType[Width * Height];
+            _tiles = new TileType[Width * Height];
             Bounds = new Rectangle(1, 1, Width - 1, Height - 1);
         }
 
         public TileType GetTile(int x, int y)
         {
-            return _cells[x + y * Width];
+            return _tiles[x + y * Width];
         }
+
+
 
         public void SetTile(int x, int y, TileType type)
         {
-            _cells[x + y * Width] = type;
+            _tiles[x + y * Width] = type;
+
+            switch (type)
+            {
+                case TileType.Unused:
+                    SetCellProperties(x, y, false, false);
+                    break;
+                case TileType.Empty:
+                    SetCellProperties(x, y, true, true);
+                    break;
+                case TileType.Wall:
+                    SetCellProperties(x, y, false, false);
+                    break;
+                case TileType.Door:
+                    SetCellProperties(x, y, false, false);
+                    break;
+            }
         }
 
         public TileType[] GetMap()
         {
-            return _cells;
+            return _tiles;
         }
 
         public Point GetTileLocation(int i)
@@ -104,51 +115,6 @@ namespace ProjectChandra.Shared.MapGen
                 }
             });
             return cardinalDirs;
-        }
-
-        private int ClampX(int x)
-        {
-            return (x < 0) ? 0 : (x > Width - 1) ? Width - 1 : x;
-        }
-
-        private int ClampY(int y)
-        {
-            return (y < 0) ? 0 : (y > Height - 1) ? Height - 1 : y;
-        }
-
-        public IEnumerable<Point> GetCellsAlongLine(int xOrigin, int yOrigin, int xDestination, int yDestination)
-        {
-            xOrigin = ClampX(xOrigin);
-            yOrigin = ClampY(yOrigin);
-            xDestination = ClampX(xDestination);
-            yDestination = ClampY(yDestination);
-
-            int dx = Math.Abs(xDestination - xOrigin);
-            int dy = Math.Abs(yDestination - yOrigin);
-
-            int sx = xOrigin < xDestination ? 1 : -1;
-            int sy = yOrigin < yDestination ? 1 : -1;
-            int err = dx - dy;
-
-            while (true)
-            {
-                yield return new Point(xOrigin, yOrigin);
-                if (xOrigin == xDestination && yOrigin == yDestination)
-                {
-                    break;
-                }
-                int e2 = 2 * err;
-                if (e2 > -dy)
-                {
-                    err = err - dy;
-                    xOrigin = xOrigin + sx;
-                }
-                if (e2 < dx)
-                {
-                    err = err + dx;
-                    yOrigin = yOrigin + sy;
-                }
-            }
         }
     }
 }

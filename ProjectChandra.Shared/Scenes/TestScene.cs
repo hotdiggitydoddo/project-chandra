@@ -6,15 +6,21 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Nez;
+using Nez.Sprites;
 using Nez.Tiled;
 using ProjectChandra.Shared.Components;
+using ProjectChandra.Shared.Helpers;
+using ProjectChandra.Shared.MapGen;
 using ProjectChandra.Shared.MapGen.Generators;
+using ProjectChandra.Shared.Tiles;
 
 namespace ProjectChandra.Shared.Scenes
 {
     public class TestScene : Scene
     {
         private Texture2D _texture;
+        private Entity _player;
+        private MapGen.GameMap _map;
 
         public TestScene()
         {
@@ -25,16 +31,27 @@ namespace ProjectChandra.Shared.Scenes
             base.initialize();
             setDesignResolution(1280, 720, SceneResolutionPolicy.None);
             Screen.setSize(1280, 720);
-            clearColor = Color.CornflowerBlue;
+            clearColor = Color.Black;
             addRenderer(new DefaultRenderer());
-
             CreateTexture();
+
+           
 
             //SetupBspMap();
             SetupTemplatedMap();
 
-            camera.zoom = -1f;
-            camera.position = new Vector2(640, 1100);
+            _player = createEntity("hero");
+            _player.position = new Vector2(320 + 16);
+            _player.addComponent(new Sprite(new Nez.Textures.Subtexture(_texture, new Rectangle(32, 0, 32, 32), new Vector2(16))) { color = Color.LimeGreen, renderLayer = -1 });
+            _player.addComponent(new Player2(_map));
+            _player.addComponent(new CustomTiledMapMover());
+
+            var pCol = _player.addComponent(new BoxCollider(32, 32));
+            //Flags.setFlagExclusive(ref pCol.physicsLayer, (int)LayerMask.Player);
+            //Flags.setFlagExclusive(ref pCol.collidesWithLayers, (int)LayerMask.Obstacles);
+            camera.entity.addComponent(new FollowCamera(_player));
+            //camera.zoom = -1f;
+            //camera.position = new Vector2(640, 1100);
         }
 
         private void SetupBspMap()
@@ -44,13 +61,12 @@ namespace ProjectChandra.Shared.Scenes
             var ts = 32;
 
             var gen = new MessyBSPTreeMapGenerator(w, h);
-            var map = gen.CreateMap();
-            Debug.log(map.ToString());
+            _map = gen.CreateMap();
+            Debug.log(_map.ToString());
 
-            var custMap = new CustomTiledMap(0, map.Width, map.Height, ts, ts);
+            var custMap = new CustomTiledMap(0, _map.Width, _map.Height, ts, ts);
             var tileset = new TiledTileset(_texture, 0, ts, ts, 0, 0, 4, 4);
-            custMap.loadFromArray("basic", map.GetMap().Select(x => (int) x).ToArray(), map.Width, map.Height, tileset, ts, ts);
-
+            custMap.loadFromArray("basic", _map.GetMap().Select(x => (int) x).ToArray(), _map.Width, _map.Height, tileset, ts, ts, _map);
             var mapEntity = createEntity("tiled-map");
             mapEntity.addComponent(new TiledMapComponent(custMap, shouldCreateColliders: false));
 
@@ -102,27 +118,27 @@ namespace ProjectChandra.Shared.Scenes
             var ts = 32;
             var templates = LoadRoomTemplatesFromFile(Path.Combine(content.RootDirectory, "Templates.txt"));
 
-            //tData = string.Empty;
-            //tData += "........................";
-            //tData += "........................";
-            //tData += "........................";
-            //tData += "........xxxxxxxx........";
-            //tData += "........xxxxxxxx........";
-            //tData += "........xxxxxxxx........";
-            //templates.Add(new RoomTemplate(24, 6, tData, "tooth"));
-
             var gen = new TemplatedMapGenerator() { DesiredRoomCount = 35 };
             gen.AddTemplates(templates.ToArray());
 
-            var map = gen.CreateMap(w, h);
+            _map = gen.CreateMap(w, h);
 
-            var custMap = new CustomTiledMap(0, map.Width, map.Height, ts, ts);
+            var custMap = new CustomTiledMap(0, _map.Width, _map.Height, ts, ts);
             var tileset = new TiledTileset(_texture, -1, ts, ts, 0, 0, 4, 4);
-            custMap.loadFromArray("basic", map.GetMap().Select(x => (int)x).ToArray(), map.Width, map.Height, tileset, ts, ts);
+            custMap.loadFromArray("basic", _map.GetMap().Select(x => (int)x).ToArray(), _map.Width, _map.Height, tileset, ts, ts, _map);
+            var colArr = new TiledTile[_map.Width * _map.Height];
+            var mapTiles = _map.GetMap();
+            for (int i = 0; i < mapTiles.Length; i++)
+            {
+                if (mapTiles[i] == TileType.Empty)
+                    continue;
+                colArr[i] = new TiledTile((int)mapTiles[i]) { tileset = tileset };
+            }
+            custMap.createTileLayer("col", _map.Width, _map.Height, colArr).visible = false;
 
-           
+
             var mapEntity = createEntity("tiled-map");
-            mapEntity.addComponent(new TiledMapComponent(custMap, shouldCreateColliders: false));
+            mapEntity.addComponent(new TiledMapComponent(custMap, "col"));
         }
 
         private void CreateTexture()
@@ -153,9 +169,9 @@ namespace ProjectChandra.Shared.Scenes
             base.update();
             if (Input.isKeyDown(Keys.R))
             {
-                var tiledMapEntity = entities.findEntity("tiled-map");
-                tiledMapEntity.destroy();   
-                SetupTemplatedMap();
+                //var tiledMapEntity = entities.findEntity("tiled-map");
+                //tiledMapEntity.destroy();   
+                //SetupTemplatedMap();
                 //SetupBspMap();
             }
         }

@@ -1,10 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using Microsoft.Xna.Framework;
-using Nez.AI.GOAP;
-using Nez.AI.Pathfinding;
 using ProjectChandra.Shared.Helpers;
+using RogueSharp;
 
 namespace ProjectChandra.Shared.MapGen.Generators
 {
@@ -118,6 +115,10 @@ namespace ProjectChandra.Shared.MapGen.Generators
                     continue;
 
                 CreateAdditionalRoutes();
+
+
+
+
                 mapCreated = true;
             }
 
@@ -282,7 +283,7 @@ namespace ProjectChandra.Shared.MapGen.Generators
 
         private void CreateAdditionalRoutes()
         {
-            IEnumerable<Point> cells;
+            IEnumerable<ICell> cells;
             var placeDoor = false;
 
             foreach (var cell in _borderCells)

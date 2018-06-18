@@ -4,7 +4,7 @@ using Microsoft.Xna.Framework;
 
 namespace ProjectChandra.Shared.MapGen.Generators
 {
-    public class TemplatedMap : Map
+    public class TemplatedMap : GameMap
     {
         private List<Rectangle> _rooms;
         private List<Rectangle> _hallways;

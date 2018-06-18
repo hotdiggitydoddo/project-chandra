@@ -1,5 +1,5 @@
-﻿using Microsoft.Xna.Framework;
-using ProjectChandra.Shared.Helpers;
+﻿using ProjectChandra.Shared.Helpers;
+using RogueSharp;
 
 namespace ProjectChandra.Shared.MapGen
 {

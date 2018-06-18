@@ -4,7 +4,7 @@ using Microsoft.Xna.Framework;
 
 namespace ProjectChandra.Shared.MapGen.Generators
 {
-    public class MessyBSPTreeMap : Map
+    public class MessyBSPTreeMap : GameMap
     {
         
         public MessyBSPTreeMap(int w, int h) : base(w, h)

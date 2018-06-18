@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.Xna.Framework;
 using ProjectChandra.Shared.Helpers;
+using RogueSharp;
 
 namespace ProjectChandra.Shared.MapGen.Generators
 {
@@ -128,17 +128,17 @@ namespace ProjectChandra.Shared.MapGen.Generators
                 int yMax = room.Bottom;
 
                 // Put the rooms border cells into a list
-                var borderPoints = _map.GetCellsAlongLine(xMin, yMin, xMax, yMin).ToList();
-                borderPoints.AddRange(_map.GetCellsAlongLine(xMin, yMin, xMin, yMax));
-                borderPoints.AddRange(_map.GetCellsAlongLine(xMin, yMax, xMax, yMax));
-                borderPoints.AddRange(_map.GetCellsAlongLine(xMax, yMin, xMax, yMax));
+                var borderCells = _map.GetCellsAlongLine(xMin, yMin, xMax, yMin).ToList();
+                borderCells.AddRange(_map.GetCellsAlongLine(xMin, yMin, xMin, yMax));
+                borderCells.AddRange(_map.GetCellsAlongLine(xMin, yMax, xMax, yMax));
+                borderCells.AddRange(_map.GetCellsAlongLine(xMax, yMin, xMax, yMax));
 
-                foreach (var point in borderPoints)
+                foreach (var cell in borderCells)
                 {
-                    if (IsPotentialDoor(point))
+                    if (IsPotentialDoor(cell))
                     {
                         // A door must block field-of-view when it is closed.
-                        _map.SetTile(point.X, point.Y, TileType.Door);
+                        _map.SetTile(cell.X, cell.Y, TileType.Door);
                         // _map.Doors.Add(new Door
                         // {
                         //     X = cell.X,
@@ -150,14 +150,14 @@ namespace ProjectChandra.Shared.MapGen.Generators
             }
         }
 
-        private bool IsPotentialDoor(Point point)
+        private bool IsPotentialDoor(ICell cell)
         {
-            var tile = _map.GetTile(point.X, point.Y);
+            var tile = _map.GetTile(cell.X, cell.Y);
 
             if (tile == TileType.Wall)
                 return false;
 
-            var adjacents = _map.GetAdjacentTilesSimple(point.X, point.Y);
+            var adjacents = _map.GetAdjacentTilesSimple(cell.X, cell.Y);
             
             if (adjacents.Any(x => x.Tile == TileType.Door))
                 return false;
